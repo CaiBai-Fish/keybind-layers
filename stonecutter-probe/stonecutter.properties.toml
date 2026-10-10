@@ -1,0 +1,38 @@
+# 集中式版本属性：每个目标版本一段，构建时按当前激活版本读取。
+# 见 https://stonecutter.kikugie.dev/wiki/config/properties
+mod.id = "probe"
+mod.name = "Stonecutter Probe"
+mod.group = "probe"
+mod.version = "0.1.0"
+
+["1.21"]
+mod.mc_compat = "[1.21]"
+deps.neo_loader = "21.0.167"
+
+["1.21.1"]
+mod.mc_compat = "[1.21.1]"
+deps.neo_loader = "21.1.257"
+
+["1.21.3"]
+mod.mc_compat = "[1.21.3]"
+deps.neo_loader = "21.3.97"
+
+["1.21.4"]
+mod.mc_compat = "[1.21.4]"
+deps.neo_loader = "21.4.158"
+
+["1.21.5"]
+mod.mc_compat = "[1.21.5]"
+deps.neo_loader = "21.5.98"
+
+["1.21.8"]
+mod.mc_compat = "[1.21.8]"
+deps.neo_loader = "21.8.54"
+
+["1.21.10"]
+mod.mc_compat = "[1.21.10]"
+deps.neo_loader = "21.10.64"
+
+["1.21.11"]
+mod.mc_compat = "[1.21.11]"
+deps.neo_loader = "21.11.45"
