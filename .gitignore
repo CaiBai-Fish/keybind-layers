@@ -24,3 +24,10 @@ Desktop.ini
 .DS_Store
 # Local-only helper tool, unrelated to the mod
 tools/fix-imported-session.js
+
+# Local-only notes: kept on disk, deliberately not published
+AGENTS.md
+docs/
+
+# Screenshots from manual runClient verification
+tools/screenshots/

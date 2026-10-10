@@ -14,18 +14,15 @@ import net.minecraft.client.KeyMapping;
  * {@link KeyMapping} 与层级模型之间的桥接。
  *
  * <p>本文件依赖 Minecraft 类，但只用到 {@code getCategory()}、{@code getName()}、
- * {@code getKeyModifier()} 三个方法，它们在 1.20.1 与 1.21.1 中同名
- * （前两个的签名完全一致，已用 javap 核实：{@code getCategory()Ljava/lang/String;}；
- * {@code getKeyModifier()} 的返回类型在两个平台是不同的枚举，擦除后都是 {@code Object}），
- * 因此两个加载器工程共用这一份实现。</p>
+ * {@code same()} 这几个在 1.20.1 与 1.21.1 中同名同签名的方法
+ * （已用 javap 核实：{@code getCategory()Ljava/lang/String;}），
+ * 因此各加载器工程共用这一份实现。</p>
+ *
+ * <p>一切加载器特有的概念——修饰键（{@link KeyModifiers}）与按键自己声明的作用域
+ * （{@link KeyContexts}）——都走注入，由平台入口在客户端初始化时装上。
+ * <strong>Fabric 两个都不装</strong>，于是自动退回「原版判定 + 配置与未知分类策略」。</p>
  */
 public final class KeyMappingLayers {
-
-    static {
-        // 修饰键读取器在这里注入：本类只在客户端被用到（原版列表的 Mixin 与自建界面都会
-        // 走到这里），放在静态块里两个平台就都自动生效，不必让各自的入口类记得注册。
-        KeyModifiers.install(KeyMapping::getKeyModifier);
-    }
 
     /**
      * 「自定义作用域层」的前缀。
@@ -121,9 +118,10 @@ public final class KeyMappingLayers {
     /**
      * 找出与给定绑定真正冲突的其它绑定，即「同一个键、同一个修饰键 <em>且</em> 属于同一层级」的那些。
      *
-     * <p>判据与原版 {@code KeyBindsList$KeyEntry#refreshEntry} 完全一致
-     * （{@code same} 或 {@code hasKeyModifierConflict}），只是额外要求同一修饰键与同一层级；
-     * 自建界面用它决定是否标红、以及生成 tooltip。</p>
+     * <p>判据与原版 {@code KeyBindsList$KeyEntry#refreshEntry} 一致（{@code same}，
+     * Forge / NeoForge 上再加上 {@code hasKeyModifierConflict}——经
+     * {@link KeyModifiers#hasModifierConflict} 间接调用，Fabric 上该判据恒为假），
+     * 只是额外要求同一修饰键与同一层级；自建界面用它决定是否标红、以及生成 tooltip。</p>
      *
      * <p>原版对未绑定的按键不做冲突检测，这里同样直接返回空列表。</p>
      */
@@ -136,7 +134,8 @@ public final class KeyMappingLayers {
             if (other == null || other == mapping) {
                 continue;
             }
-            if ((mapping.same(other) || other.hasKeyModifierConflict(mapping)) && reportConflict(mapping, other)) {
+            if ((mapping.same(other) || KeyModifiers.hasModifierConflict(other, mapping))
+                    && reportConflict(mapping, other)) {
                 conflicts.add(other);
             }
         }

@@ -1,4 +1,4 @@
-package caibai_fish.keybindlayers.neoforge.client;
+package caibai_fish.keybindlayers.client;
 
 import caibai_fish.keybindlayers.client.KeybindLayersClient;
 import caibai_fish.keybindlayers.core.KeyLayers;

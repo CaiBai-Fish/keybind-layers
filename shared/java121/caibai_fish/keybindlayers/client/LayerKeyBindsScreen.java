@@ -1,4 +1,4 @@
-package caibai_fish.keybindlayers.neoforge.client;
+package caibai_fish.keybindlayers.client;
 
 import caibai_fish.keybindlayers.client.KeyMappingLayers;
 import caibai_fish.keybindlayers.client.LayerNames;
@@ -12,7 +12,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import net.minecraft.client.KeyMapping;
@@ -25,9 +24,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.options.OptionsSubScreen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
-import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.ModList;
-import net.neoforged.neoforge.client.settings.KeyModifier;
 
 /**
  * 层级感知的按键设置界面（Minecraft 1.21.1 / NeoForge）。
@@ -96,7 +92,7 @@ public class LayerKeyBindsScreen extends OptionsSubScreen {
     protected void init() {
         // 建列表之前先补采一次作用域：让「只要装备/手持某物」的按键并进游戏内层，
         // 免得玩家必须先进入一次世界才看得到正确分层。
-        InGameContextSampler.sampleNow();
+        KeyContexts.requestResample();
         super.init();
     }
 
@@ -128,7 +124,7 @@ public class LayerKeyBindsScreen extends OptionsSubScreen {
     protected void addFooter() {
         this.resetButton = Button.builder(Component.translatable("controls.resetAll"), button -> {
             for (KeyMapping mapping : this.options.keyMappings) {
-                mapping.setToDefault();
+                KeyModifiers.bind(mapping, KeyModifiers.noModifier(), mapping.getDefaultKey());
             }
             this.list.resetMappingAndUpdateButtons();
         }).build();
@@ -319,7 +315,7 @@ public class LayerKeyBindsScreen extends OptionsSubScreen {
     /**
      * 从层级 id 里认出它属于哪个 mod，返回 mod 的显示名；认不出返回 {@code null}。
      *
-     * <p>按 {@code .} 与 {@code $} 切段逐个拿去问 {@link ModList}：</p>
+     * <p>按 {@code .} 与 {@code $} 切段逐个拿去问 {@link ModNames}：</p>
      * <ul>
      *   <li>{@code category:key.category.sophisticatedbackpacks.main} → {@code sophisticatedbackpacks}；</li>
      *   <li>{@code context:net.p3pp3rf1y.sophisticatedbackpacks.client.KeybindHandler$Backpack…}
@@ -334,9 +330,9 @@ public class LayerKeyBindsScreen extends OptionsSubScreen {
             if (part.length() < 2) {
                 continue;
             }
-            Optional<? extends ModContainer> container = ModList.get().getModContainerById(part);
-            if (container.isPresent()) {
-                return container.get().getModInfo().getDisplayName();
+            String displayName = ModNames.displayNameOf(part);
+            if (displayName != null) {
+                return displayName;
             }
         }
         return null;
@@ -390,7 +386,8 @@ public class LayerKeyBindsScreen extends OptionsSubScreen {
             return null;
         }
         for (KeyMapping mapping : this.options.keyMappings) {
-            if (LockedKeybinds.isLocked(mapping.getName()) && candidate.equals(mapping.getKey())) {
+            if (LockedKeybinds.isLocked(mapping.getName())
+                    && candidate.equals(KeyModifiers.boundKeyOf(mapping))) {
                 return mapping;
             }
         }
@@ -400,7 +397,8 @@ public class LayerKeyBindsScreen extends OptionsSubScreen {
     /** 拒绝这次改键：提示「已被哪个功能占用」并取消等待状态（原绑定保持不变）。 */
     private void rejectKeybind(KeyMapping owner) {
         this.selectedKey = null;
-        this.showNotice(Component.translatable("keybindlayers.keybind.reserved", owner.getDisplayName()));
+        this.showNotice(Component.translatable("keybindlayers.keybind.reserved",
+                Component.translatable(owner.getName())));
         this.list.resetMappingAndUpdateButtons();
     }
 
@@ -432,7 +430,7 @@ public class LayerKeyBindsScreen extends OptionsSubScreen {
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (this.selectedKey != null) {
             InputConstants.Key key = InputConstants.getKey(keyCode, scanCode);
-            if (this.lastPressedModifier == InputConstants.UNKNOWN && KeyModifier.isKeyCodeModifier(key)) {
+            if (this.lastPressedModifier == InputConstants.UNKNOWN && KeyModifiers.isModifierKey(key)) {
                 this.lastPressedModifier = key;
                 this.isLastModifierHeldDown = true;
             } else {
@@ -449,7 +447,7 @@ public class LayerKeyBindsScreen extends OptionsSubScreen {
         if (this.selectedKey != null && (!Minecraft.ON_OSX || scanCode != 63)) {
             if (keyCode == 256) {
                 // ESC：解除绑定。
-                this.selectedKey.setKeyModifierAndCode(KeyModifier.NONE, InputConstants.UNKNOWN);
+                KeyModifiers.bind(this.selectedKey, KeyModifiers.noModifier(), InputConstants.UNKNOWN);
                 this.options.setKey(this.selectedKey, InputConstants.UNKNOWN);
                 this.lastPressedKey = InputConstants.UNKNOWN;
                 this.lastPressedModifier = InputConstants.UNKNOWN;
@@ -476,11 +474,11 @@ public class LayerKeyBindsScreen extends OptionsSubScreen {
                     // 被锁定按键占用的键位不给别人用，直接拒绝并点名提示。
                     this.rejectKeybind(owner);
                 } else if (!this.lastPressedKey.equals(InputConstants.UNKNOWN)) {
-                    this.selectedKey.setKeyModifierAndCode(
-                            KeyModifier.getKeyModifier(this.lastPressedModifier), this.lastPressedKey);
+                    KeyModifiers.bind(this.selectedKey, 
+                            KeyModifiers.modifierFor(this.lastPressedModifier), this.lastPressedKey);
                     this.options.setKey(this.selectedKey, this.lastPressedKey);
                 } else {
-                    this.selectedKey.setKeyModifierAndCode(KeyModifier.NONE, this.lastPressedModifier);
+                    KeyModifiers.bind(this.selectedKey, KeyModifiers.noModifier(), this.lastPressedModifier);
                     this.options.setKey(this.selectedKey, this.lastPressedModifier);
                 }
                 this.lastPressedKey = InputConstants.UNKNOWN;

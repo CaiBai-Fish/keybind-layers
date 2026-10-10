@@ -1,0 +1,72 @@
+plugins {
+    id 'fabric-loom' version '1.18.4'
+}
+
+version = mod_version
+group = mod_group_id
+
+base {
+    archivesName = "${mod_id}-fabric-${minecraft_version}"
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+}
+
+repositories {
+    maven {
+        name = 'TerraformersMC'
+        url = 'https://maven.terraformersmc.com/releases/'
+    }
+}
+
+loom {
+    runs {
+        client {
+            client()
+        }
+    }
+}
+
+// 与其它三个工程共用同一份核心源码与语言文件；
+// shared/java121 是 1.21.1 专属的界面代码，neoforge-1.21.1 也用同一份。
+sourceSets.main.java.srcDir '../shared/java'
+sourceSets.main.java.srcDir '../shared/java121'
+sourceSets.main.resources.srcDir '../shared/resources'
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    // 官方 Mojang 映射：shared/ 里的类名与方法名因此与 Forge / NeoForge 侧完全一致，
+    // 不必为 yarn 映射再维护一份代码。
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${loader_version}"
+    // 必需：fabric-loader 不会把 mod 的 assets/ 接进资源包系统，那是 fabric-api 的
+    // fabric-resource-loader-v0 干的。少了它，语言文件失效、界面显示原始翻译键。
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+
+    // ModMenu 只为「模组列表 → 配置」入口而存在，属于可选依赖：
+    // 编译期需要它的 API，运行期没装也必须能正常玩（Fabric Loader 只在
+    // ModMenu 存在时才会调用 modmenu 入口点，所以那个类不会被加载）。
+    // transitive = false：只借它的 API 类，不把 Fabric API 拖进来。
+    modCompileOnly("com.terraformersmc:modmenu:${modmenu_version}") {
+        transitive = false
+    }
+}
+
+// fabric.mod.json 里的 ${...} 占位符在这里展开。
+processResources {
+    var replaceProperties = [version    : mod_version,
+                             mod_id     : mod_id,
+                             mod_name   : mod_name,
+                             mod_license: mod_license,
+                             mod_authors: mod_authors,
+                             mod_description: mod_description]
+    inputs.properties replaceProperties
+    filesMatching('fabric.mod.json') {
+        expand replaceProperties
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}

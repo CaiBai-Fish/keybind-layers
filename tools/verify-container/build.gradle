@@ -1,0 +1,29 @@
+// Disposable runtime container. It owns no mod code worth keeping: its only job is to
+// run Minecraft 1.21.8 with the jar that was compiled against NeoForge 21.1.238, so we
+// can see whether the widened versionRange in that jar actually holds up at runtime.
+plugins {
+    id 'java'
+    id 'net.neoforged.moddev' version '2.0.147'
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+neoForge {
+    version = '21.0.167'
+
+    runs {
+        client {
+            client()
+        }
+    }
+
+    mods {
+        'verifyprobe' {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}

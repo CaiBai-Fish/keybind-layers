@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "minVersion": "0.8.5",
+  "package": "caibai_fish.keybindlayers.fabric.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "MinecraftSetScreenMixin",
+    "KeyBindsListKeyEntryMixin",
+    "KeyMappingAccessor",
+    "KeyboardHandlerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}

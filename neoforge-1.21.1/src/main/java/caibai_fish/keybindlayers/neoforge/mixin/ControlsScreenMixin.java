@@ -1,6 +1,6 @@
 package caibai_fish.keybindlayers.neoforge.mixin;
 
-import caibai_fish.keybindlayers.neoforge.client.LayerKeyBindsScreen;
+import caibai_fish.keybindlayers.client.LayerKeyBindsScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.options.controls.ControlsScreen;

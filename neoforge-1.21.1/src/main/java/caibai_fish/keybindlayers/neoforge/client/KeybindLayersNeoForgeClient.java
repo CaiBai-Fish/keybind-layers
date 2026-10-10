@@ -2,9 +2,14 @@ package caibai_fish.keybindlayers.neoforge.client;
 
 import caibai_fish.keybindlayers.client.KeyContexts;
 import caibai_fish.keybindlayers.client.KeyMappingLayers;
+import caibai_fish.keybindlayers.client.KeyModifiers;
+import caibai_fish.keybindlayers.client.LayerManagerScreen;
+import caibai_fish.keybindlayers.client.ModNames;
 import caibai_fish.keybindlayers.core.KeyLayers;
 import caibai_fish.keybindlayers.neoforge.KeybindLayersNeoForge;
+import com.mojang.blaze3d.platform.InputConstants;
 import java.util.Optional;
+import net.minecraft.client.KeyMapping;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.ModList;
@@ -12,9 +17,10 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.client.settings.IKeyConflictContext;
 import net.neoforged.neoforge.client.settings.KeyConflictContext;
+import net.neoforged.neoforge.client.settings.KeyModifier;
 
 /**
- * 客户端专属入口：挂上「模组列表 → Config」的界面，并注入按键作用域的读取器。
+ * 客户端专属入口：挂上「模组列表 → Config」的界面，并把 NeoForge 特有的三样能力注入共享层。
  *
  * <h2>为什么单独开一个入口类</h2>
  * <p>{@code IConfigScreenFactory} 的方法签名引用了 {@code Screen}，而
@@ -33,7 +39,65 @@ public final class KeybindLayersNeoForgeClient {
         container.registerExtensionPoint(IConfigScreenFactory.class,
                 (modContainer, modListScreen) -> new LayerManagerScreen(modListScreen));
 
+        installKeyModifierSupport();
+        installModNameResolver();
         installKeyContextReader();
+        // 采样器是 NeoForge 特有的（要读 IKeyConflictContext），Fabric 侧不装。
+        KeyContexts.installResampler(InGameContextSampler::sampleNow);
+    }
+
+    /**
+     * 把 NeoForge 特有的修饰键能力接到共享层。
+     *
+     * <p>{@code shared/} 不能 import 平台类，而 {@code KeyModifier} 的包名在 Forge 与
+     * NeoForge 上还不一样，所以一律走注入。Fabric 侧不装这些，自动退回原版判定。</p>
+     */
+    private static void installKeyModifierSupport() {
+        KeyModifiers.install(KeyMapping::getKeyModifier);
+        KeyModifiers.installConflictCheck(KeyMapping::hasKeyModifierConflict);
+        // 原版的 key 字段是 private；getKey() 是 NeoForge 自己加的 getter。
+        KeyModifiers.installKeyReader(KeyMapping::getKey);
+        KeyModifiers.installCombos(new KeyModifiers.Combos() {
+            @Override
+            public boolean supported() {
+                return true;
+            }
+
+            @Override
+            public boolean isModifierKey(InputConstants.Key key) {
+                return KeyModifier.isKeyCodeModifier(key);
+            }
+
+            @Override
+            public Object modifierFor(InputConstants.Key key) {
+                return KeyModifier.getKeyModifier(key);
+            }
+
+            @Override
+            public Object none() {
+                return KeyModifier.NONE;
+            }
+
+            @Override
+            public void bind(KeyMapping mapping, Object modifier, InputConstants.Key key) {
+                // modifierFor 有且只有两种返回：一个 KeyModifier，或 none()。
+                mapping.setKeyModifierAndCode(
+                        modifier instanceof KeyModifier keyModifier ? keyModifier : KeyModifier.NONE, key);
+            }
+        });
+    }
+
+    /**
+     * 把「mod id → 显示名」的查询接到共享层。
+     *
+     * <p>自建界面的标签名要用 mod 显示名而不是 {@code key.category.*} 那种分类名，
+     * 但查询方式各加载器完全不同，所以由平台注入。</p>
+     */
+    private static void installModNameResolver() {
+        ModNames.install(modId -> {
+            Optional<? extends ModContainer> container = ModList.get().getModContainerById(modId);
+            return container.map(modContainer -> modContainer.getModInfo().getDisplayName()).orElse(null);
+        });
     }
 
     /**
@@ -83,14 +147,14 @@ public final class KeybindLayersNeoForgeClient {
      * 从 context 类所在的包名里认出它属于哪个 mod，返回 mod 的显示名。
      *
      * <p>mod 的实现类通常放在 {@code net.<作者>.<modid>.…} 这样的包下，逐段拿去问
-     * {@link ModList} 就能命中；命中失败返回 {@code null}，调用方会退回类简单名。</p>
+     * {@link ModNames} 就能命中；命中失败返回 {@code null}，调用方会退回类简单名。</p>
      */
     private static String modDisplayNameOf(IKeyConflictContext context) {
         String packageName = context.getClass().getPackageName();
         for (String part : packageName.split("\\.")) {
-            Optional<? extends ModContainer> container = ModList.get().getModContainerById(part);
-            if (container.isPresent()) {
-                return container.get().getModInfo().getDisplayName();
+            String displayName = ModNames.displayNameOf(part);
+            if (displayName != null) {
+                return displayName;
             }
         }
         return null;

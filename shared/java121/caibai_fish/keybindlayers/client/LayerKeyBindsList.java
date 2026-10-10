@@ -1,4 +1,4 @@
-package caibai_fish.keybindlayers.neoforge.client;
+package caibai_fish.keybindlayers.client;
 
 import caibai_fish.keybindlayers.client.KeyMappingLayers;
 import caibai_fish.keybindlayers.client.LayerNames;
@@ -252,7 +252,7 @@ public class LayerKeyBindsList extends ContainerObjectSelectionList<LayerKeyBind
         KeyEntry(LayerKeyBindsList list, KeyMapping key) {
             this.list = list;
             this.key = key;
-            this.name = key.getDisplayName();
+            this.name = Component.translatable(key.getName());
 
             this.changeButton = Button.builder(this.name, button -> {
                         list.screen().selectKey(key);
@@ -265,7 +265,7 @@ public class LayerKeyBindsList extends ContainerObjectSelectionList<LayerKeyBind
                     .build();
 
             this.resetButton = Button.builder(RESET_BUTTON_TITLE, button -> {
-                        this.key.setToDefault();
+                        KeyModifiers.bind(this.key, KeyModifiers.noModifier(), this.key.getDefaultKey());
                         list.minecraft().options.setKey(this.key, this.key.getDefaultKey());
                         list.resetMappingAndUpdateButtons();
                     })
@@ -291,7 +291,7 @@ public class LayerKeyBindsList extends ContainerObjectSelectionList<LayerKeyBind
                     names.append(", ");
                 }
                 this.hasCollision = true;
-                names.append(other.getDisplayName());
+                names.append(Component.translatable(other.getName()));
             }
 
             if (this.hasCollision) {

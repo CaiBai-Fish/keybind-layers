@@ -46,8 +46,12 @@ neoForge {
     }
 }
 
-// 与 forge-1.20.1 工程共用同一份核心源码与语言文件。
+// 与其它三个工程共用同一份核心源码与语言文件。
 sourceSets.main.java.srcDir '../shared/java'
+// 1.21.1 专属的界面代码（用到了 1.20.1 不存在的原版 API，例如
+// net.minecraft.client.gui.screens.options.*）。单独一个源根而不是并进 shared/java，
+// 是为了让 forge-1.20.1 工程不必编译它；两个 1.21.1 工程（NeoForge 与 Fabric）共用。
+sourceSets.main.java.srcDir '../shared/java121'
 sourceSets.main.resources.srcDir '../shared/resources'
 
 dependencies {

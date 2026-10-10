@@ -1,0 +1,18 @@
+pluginManagement {
+    repositories {
+        maven {
+            name = 'Fabric'
+            url = 'https://maven.fabricmc.net/'
+        }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+// Fabric 侧的工具链要求：运行 Gradle 的 JVM 必须是 Java 25（Loom 1.18 的 class 文件版本），
+// 而本工程编译目标是 Java 17。两者不是同一个 JVM，所以必须让 Gradle 能自己找/下载 toolchain。
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+rootProject.name = 'keybindlayers-fabric-1.20.1'

@@ -1,0 +1,59 @@
+plugins {
+    id 'fabric-loom' version '1.18.4'
+}
+
+version = mod_version
+group = mod_group_id
+
+base {
+    archivesName = "${mod_id}-fabric-${minecraft_version}"
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(17)
+}
+
+loom {
+    // Loom 1.18 起 mixin 注解处理器不再默认启用，也不再需要手写 refmap 配置：
+    // remapJar 阶段会直接把 mixin 注解里的官方名改写成 intermediary 名。
+    runs {
+        client {
+            client()
+        }
+    }
+}
+
+// 与其它三个工程共用同一份核心源码与语言文件。
+// shared/java 只用两个 MC 版本都存在的 API，所以能同时被 Java 17（1.20.1）与
+// Java 21（1.21.1）编译。
+sourceSets.main.java.srcDir '../shared/java'
+sourceSets.main.resources.srcDir '../shared/resources'
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    // 官方 Mojang 映射：shared/ 里的类名与方法名因此与 Forge / NeoForge 侧完全一致，
+    // 不必为 yarn 映射再维护一份代码。
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${loader_version}"
+    // 必需：fabric-loader 不会把 mod 的 assets/ 接进资源包系统，那是 fabric-api 的
+    // fabric-resource-loader-v0 干的。少了它，语言文件失效、界面显示原始翻译键。
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+}
+
+// fabric.mod.json 里的 ${...} 占位符在这里展开。
+processResources {
+    var replaceProperties = [version    : mod_version,
+                             mod_id     : mod_id,
+                             mod_name   : mod_name,
+                             mod_license: mod_license,
+                             mod_authors: mod_authors,
+                             mod_description: mod_description]
+    inputs.properties replaceProperties
+    filesMatching('fabric.mod.json') {
+        expand replaceProperties
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}

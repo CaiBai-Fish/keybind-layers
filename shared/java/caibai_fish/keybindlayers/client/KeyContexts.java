@@ -68,6 +68,40 @@ public final class KeyContexts {
         resolver = layerIdResolver;
     }
 
+    /**
+     * 平台侧「立刻重新采样一次作用域」的动作；Fabric 不注入。
+     *
+     * <p>采样本身依赖各加载器的 context 体系（NeoForge 上是
+     * {@code InGameContextSampler}），共享层碰不到，所以只留一个钩子。</p>
+     */
+    private static volatile Runnable resampler;
+
+    /** 由平台客户端入口注入；传 {@code null} 可撤销。 */
+    public static void installResampler(Runnable action) {
+        resampler = action;
+    }
+
+    /**
+     * 请求平台立刻重采一次作用域。
+     *
+     * <p>打开按键界面时调一次：玩家可能刚进游戏就直接开设置，
+     * 还没等到常规采样时机，此时自定义 context 的分层会不准。</p>
+     *
+     * <p>未注入（Fabric）或采样抛异常时静默跳过——采样只是锦上添花，
+     * 不该因此打不开界面。</p>
+     */
+    public static void requestResample() {
+        Runnable current = resampler;
+        if (current == null) {
+            return;
+        }
+        try {
+            current.run();
+        } catch (RuntimeException e) {
+            // 采样失败不影响界面打开。
+        }
+    }
+
     /** 该按键声明的作用域对应的层级 id；没有可用声明时返回 {@code null}。 */
     public static String layerIdOf(KeyMapping mapping) {
         Function<KeyMapping, String> current = resolver;
