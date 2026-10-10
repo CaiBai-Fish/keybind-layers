@@ -9,10 +9,13 @@
 
 ## 版本支持
 
-| 目标 | 加载器 | 状态 | 工程目录 |
+| 目标 | 加载器 | 状态 | 下载 |
 |---|---|---|---|
-| Minecraft 1.21.1 | NeoForge 21.1.x | 已实现 | [`neoforge-1.21.1/`](neoforge-1.21.1) |
-| Minecraft 1.21.1 | Fabric Loader 0.19.x + Fabric API | 已实现 | [`fabric-1.21.1/`](fabric-1.21.1) |
+| Minecraft 1.21.1 | NeoForge 21.1.x | 已实现 | [keybindlayers-neoforge-1.21.1-1.0.0.jar](https://github.com/CaiBai-Fish/keybind-layers/releases/download/v1.0.0/keybindlayers-neoforge-1.21.1-1.0.0.jar) |
+| Minecraft 1.21.1 | Fabric Loader 0.19.x + Fabric API | 已实现 | [keybindlayers-fabric-1.21.1-1.0.0.jar](https://github.com/CaiBai-Fish/keybind-layers/releases/download/v1.0.0/keybindlayers-fabric-1.21.1-1.0.0.jar) |
+
+全部发行版见 [Releases](https://github.com/CaiBai-Fish/keybind-layers/releases)。源码工程目录：
+[`neoforge-1.21.1/`](neoforge-1.21.1)、[`fabric-1.21.1/`](fabric-1.21.1)。
 
 1.21.1 上两个加载器功能对等：「选项 → 控制」替换为带层级标签栏的界面，并提供从
 「模组列表 → 配置」进入的层级管理界面（含「整合包作者」开关）。
