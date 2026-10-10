@@ -22,3 +22,5 @@ run-data/
 Thumbs.db
 Desktop.ini
 .DS_Store
+# Local-only helper tool, unrelated to the mod
+tools/fix-imported-session.js
