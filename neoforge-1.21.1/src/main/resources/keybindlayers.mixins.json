@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8.5",
+  "package": "caibai_fish.keybindlayers.neoforge.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "ControlsScreenMixin",
+    "KeyBindsListKeyEntryMixin",
+    "KeyboardHandlerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}
