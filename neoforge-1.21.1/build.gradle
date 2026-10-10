@@ -55,6 +55,10 @@ dependencies {
     // 测试只覆盖 shared/core 里的纯逻辑（不启动游戏），所以 JUnit 就够了。
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // core 里的配置读写用到 slf4j 与 Gson——运行时由 Minecraft 提供，测试得自带。
+    testImplementation 'org.slf4j:slf4j-api:2.0.16'
+    testRuntimeOnly 'org.slf4j:slf4j-simple:2.0.16'
+    testImplementation 'com.google.code.gson:gson:2.11.0'
 }
 
 tasks.named('test', Test) {

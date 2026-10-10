@@ -80,7 +80,9 @@ cd neoforge-1.21.1
 
 ## 配置
 
-首次启动会在 `config/keybindlayers.json` 生成：
+首次启动会在 `config/keybindlayers.json` 生成一份**带注释**的配置——mod 写出的文件里每个
+字段都有中文说明，**你手写的注释也会被保留并忽略**（读取端用 Gson 的宽容模式，跳过 `//`
+与 `/* */`）。下面为了紧凑省略了注释：
 
 ```json
 {
