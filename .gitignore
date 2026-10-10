@@ -24,10 +24,3 @@ Desktop.ini
 .DS_Store
 # Local-only helper tool, unrelated to the mod
 tools/fix-imported-session.js
-
-# Multi-version probe project (Stonecutter): only sources are tracked
-stonecutter-probe/.gradle/
-stonecutter-probe/build/
-stonecutter-probe/buildSrc/.gradle/
-stonecutter-probe/buildSrc/build/
-stonecutter-probe/versions/
