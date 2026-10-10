@@ -11,11 +11,17 @@
 
 | 目标 | 加载器 | 状态 | 工程目录 |
 |---|---|---|---|
-| Minecraft 1.20.1 | Forge 47.x | 已实现 | [`forge-1.20.1/`](forge-1.20.1) |
 | Minecraft 1.21.1 | NeoForge 21.1.x | 已实现 | [`neoforge-1.21.1/`](neoforge-1.21.1) |
+| Minecraft 1.21.1 | Fabric Loader 0.19.x + Fabric API | 已实现 | [`fabric-1.21.1/`](fabric-1.21.1) |
 
-两个工程共用 [`shared/`](shared) 下的同一份核心源码，只有 Mixin 的目标类名不同
-（1.21.1 把 `KeyBindsList` 挪进了 `screens.options.controls` 包）。
+两个工程共用 [`shared/`](shared) 下的同一份核心源码，只有 Mixin 的注入点写法不同：NeoForge
+用 Mojmap，`ControlsScreen` 里那个按钮回调保留着 `lambda$addOptions$1` 这样的名字，可以直接
+按名字注入；Fabric 的混淆 jar 里合成方法没有对应条目（Loom 会明确警告 remap 不到），所以改成
+拦 `Minecraft#setScreen` 的入参。
+
+> **1.20.1 已暂时移出。** 那边的冲突判定本来是好的，但界面重做得另写一套布局——1.20.1 也有
+> `OptionsSubScreen`，只是它在 `screens` 包下，而且没有 1.21.1 那套 `addContents()` /
+> `addFooter()` 钩子与 `layout` 字段。先只维护 1.21.1 的两个加载器。
 
 ## 默认行为
 
@@ -35,30 +41,34 @@ mod 按键则优先采用它们自己声明的作用域，见下文。
 
 ## 安装
 
-1. 装好对应加载器：**Forge 47.x**（1.20.1）或 **NeoForge 21.1.x**（1.21.1）；
+1. 装好对应加载器：**NeoForge 21.1.x** 或 **Fabric Loader 0.19.x + Fabric API**（1.21.1）；
 2. 把 jar 放进 `.minecraft/mods/`；
 3. 进游戏后「选项 → 控制」就是新的层级化界面。
+
+Fabric 版**必须同时装 Fabric API**——mod 的语言文件要靠它的 `fabric-resource-loader-v0`
+才会被加载，少了它界面上的文字会变成 `keybindlayers.tab.all` 这种原始翻译键。
+另外装了 ModMenu 的话，「模组列表 → 配置」可以打开层级管理界面（这是可选的）。
 
 本 mod **只在客户端生效**，专用服务器不需要装、装了也不会有副作用。
 
 ## 构建
 
-两个工程是独立的 Gradle 构建（ForgeGradle 6 与 ModDevGradle 2 对 Gradle 版本的要求不同），
-因此分别构建：
+两个工程是独立的 Gradle 构建，工具链要求不同，因此分别构建：
 
 ```powershell
-# NeoForge 1.21.1（Gradle 9.3.0，JDK 21）
+# NeoForge 1.21.1（Gradle 9.3.0 + ModDevGradle，JDK 21）
 cd neoforge-1.21.1
 .\gradlew.bat build
 
-# Forge 1.20.1（Gradle 8.8，需要 JDK 17 —— 由 foojay 解析器自动下载）
-cd forge-1.20.1
+# Fabric 1.21.1（Gradle 9.8.1 + Loom；运行 Gradle 的 JVM 必须是 JDK 25）
+cd fabric-1.21.1
+$env:JAVA_HOME = 'C:\Program Files\Java\jdk-25.3.6'
 .\gradlew.bat build
 ```
 
-或一次构建两个：`.\build-all.ps1`。
+或一次构建两个：`.\build-all.ps1`（会自动为 Fabric 工程找 JDK 25）。
 
-产物分别在 `forge-1.20.1/build/libs/` 与 `neoforge-1.21.1/build/libs/`。
+产物分别在 `neoforge-1.21.1/build/libs/` 与 `fabric-1.21.1/build/libs/`。
 
 开发环境运行客户端（会打开带本 mod 的游戏）：
 
@@ -133,7 +143,7 @@ cd neoforge-1.21.1
   （`GUI`），这正好就是本 mod 说的「操作层级」，而且是 mod 作者自己写的。
   开启后：配置里显式写过的按键仍以配置为准，没写过的才看这个声明；声明是 `UNIVERSAL`
   （NeoForge 默认值）或自定义 context 时继续走分类映射与未知分类策略。
-  1.20.1 侧没有接入这个读取器（Forge 的 context 在另一个包），此项在那边无效果。
+  **Fabric 上没有这个概念**（原版 `KeyMapping` 不存在作用域声明），此项在那边无效果。
 - `layers`：自定义层级定义，键是层级 id，值是 `{ displayName, order }`。
   - 内置的 8 个层级不写在这里也始终存在；写进去只会改它们的显示名，深度仍以内置值为准。
   - `order` 越小越「底层」，只影响标签栏与列表排序，不参与冲突判定。
@@ -262,13 +272,12 @@ Keybind Layers/
 │   ├── java/caibai_fish/keybindlayers/
 │   │   ├── core/               纯逻辑：层级模型、判定规则、配置读写（不依赖 MC）
 │   │   ├── api/                对外 API
-│   │   └── client/             KeyMapping 桥接与客户端初始化（依赖 MC，两版 API 一致）
+│   │   └── client/             MC 桥接、配置管理，以及各加载器的注入点
+│   ├── java121/                1.21.1 专属的界面代码（标签栏、层级管理界面）
 │   └── resources/assets/keybindlayers/lang/
-├── forge-1.20.1/               ForgeGradle 6 工程（Gradle 8.8 / JDK 17）
-├── neoforge-1.21.1/            ModDevGradle 2 工程（Gradle 9.3 / JDK 21）
-└── docs/
-    ├── DESIGN.md               设计说明与字节码依据
-    └── HANDOFF.md              交接清单：已完成 / 待验证 / 已知风险
+├── neoforge-1.21.1/            ModDevGradle 2 工程（Gradle 9.3.0 / JDK 21）
+├── fabric-1.21.1/              Fabric Loom 工程（Gradle 9.8.1 / JDK 25 + toolchain 21）
+└── tools/verify-container/     跨版本实机验证的模板与说明
 ```
 
 ## 许可
